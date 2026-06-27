@@ -14,7 +14,7 @@ import json
 from json import load, dump
 
 from highrise import BaseBot, User, Position, AnchorPosition, SessionMetadata, CurrencyItem, Item
-from highrise._main_ import main, BotDefinition
+from highrise.__main__ import main, BotDefinition
 
 sys.stdout.reconfigure(line_buffering=True)
 os.environ["PYTHONUNBUFFERED"] = "1"
