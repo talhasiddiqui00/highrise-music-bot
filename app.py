@@ -1,6 +1,6 @@
 """
 Highrise Room Management Bot - Final Updated
-Functionality: Emotes, Welcome Greet (No Tips), Owner Commands (!help, !withdraw, !give, !giveall, !top, !bal)
+Functionality: Emotes, Welcome Greet, Owner Commands (!help, !withdraw, !give, !giveall, !top, !bal, !list)
 """
 
 import os
@@ -261,17 +261,24 @@ class Bot(BaseBot):
             await self.respond(user, help_text, source)
             return
 
+        elif clean_msg == "!list":
+            await self.respond(user, f"📜 Available emotes: {', '.join(EMOTE_MAP.keys())}", source)
+            return
+
         elif clean_msg == "!stop":
             await self.stop_user_emote(user.id)
+            await self.respond(user, "🛑 Emote loop stopped.", source)
             return
 
         if not is_owner: return
+
+        owner_source = "whisper" 
 
         if clean_msg.startswith("!withdraw "):
             amount = clean_msg.split(" ")[1]
             if amount in TIP_MAP:
                 await self.highrise.tip_user(user.id, TIP_MAP[amount])
-                await self.respond(user, f"💸 Withdrawn {amount}!", source)
+                await self.respond(user, f"💸 Withdrawn {amount}!", owner_source)
         
         elif clean_msg.startswith("!giveall "):
             amount = clean_msg.split(" ")[1]
@@ -280,7 +287,7 @@ class Bot(BaseBot):
                 for u, _ in users.content:
                     if u.id != self.bot_id:
                         await self.tip_queue.put((u.id, TIP_MAP[amount], u.username))
-                await self.respond(user, f"💸 Queued {amount} for all!", source)
+                await self.respond(user, f"💸 Queued {amount} for all!", owner_source)
         
         elif clean_msg.startswith("!give "):
             parts = clean_msg.split()
@@ -292,19 +299,19 @@ class Bot(BaseBot):
                     for u, _ in users.content:
                         if u.username.lower() == target_name:
                             await self.tip_queue.put((u.id, TIP_MAP[amount_str], u.username))
-                            await self.respond(user, f"💸 Queued {amount_str} for @{u.username}", source)
+                            await self.respond(user, f"💸 Queued {amount_str} for @{u.username}", owner_source)
                             return
-                    await self.respond(user, "❌ User not in room.", source)
+                    await self.respond(user, "❌ User not in room.", owner_source)
 
         elif clean_msg == "!top":
             sorted_tippers = sorted(self.tip_data.items(), key=lambda x: x[1]['total_tips'], reverse=True)[:10]
             leaderboard = "\n".join([f"{i+1}. {d['username']} ({d['total_tips']}g)" for i, (_, d) in enumerate(sorted_tippers)])
-            await self.respond(user, f"Top Tippers:\n{leaderboard}", source)
+            await self.respond(user, f"Top Tippers:\n{leaderboard}", owner_source)
 
         elif clean_msg == "!bal":
             wallet = await self.highrise.get_wallet()
             gold = next((c.amount for c in wallet.content if c.type == 'gold'), 0)
-            await self.respond(user, f"💰 Balance: {gold}g", source)
+            await self.respond(user, f"💰 Balance: {gold}g", owner_source)
 
     async def respond(self, user: User, msg: str, source: str):
         if source == "chat": await self.highrise.chat(msg)
