@@ -1,18 +1,14 @@
 """
-Highrise Room Management Bot - Updated
-Functionality: Emotes, Welcome Greet (No Tips), Owner Commands (!help, !withdraw)
+Highrise Room Management Bot - Final Updated
+Functionality: Emotes, Welcome Greet (No Tips), Owner Commands (!help, !withdraw, !give, !giveall, !top, !bal)
 """
 
 import os
 import sys
-import time
-import random
 import asyncio
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 from json import load, dump
-
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from highrise import BaseBot, User, Position, AnchorPosition, SessionMetadata, CurrencyItem, Item
 from highrise.__main__ import main, BotDefinition
 
@@ -183,8 +179,6 @@ class Bot(BaseBot):
         super().__init__()
         self.bot_id = None
         self.owner_username = "xRedFox"
-        self.is_initialized = False 
-        self.last_command_time = {} 
         self.tip_data = {}
         self.load_database_file()
         self.active_emote_loops = {}
@@ -193,7 +187,7 @@ class Bot(BaseBot):
     def load_database_file(self) -> None:
         if not os.path.exists(DATA_FILE):
             with open(DATA_FILE, "w") as file:
-                dump({"users": {}, "bot_position": {"x": 0, "y": 0, "z": 0, "facing": "FrontRight"}}, file)
+                dump({"users": {}}, file)
         with open(DATA_FILE, "r") as file:
             data = load(file)
             self.tip_data = data.get("users", {})
@@ -287,6 +281,20 @@ class Bot(BaseBot):
                     if u.id != self.bot_id:
                         await self.tip_queue.put((u.id, TIP_MAP[amount], u.username))
                 await self.respond(user, f"💸 Queued {amount} for all!", source)
+        
+        elif clean_msg.startswith("!give "):
+            parts = clean_msg.split()
+            if len(parts) >= 3:
+                target_name = parts[1].replace("@", "").lower()
+                amount_str = parts[2].lower()
+                if amount_str in TIP_MAP:
+                    users = await self.highrise.get_room_users()
+                    for u, _ in users.content:
+                        if u.username.lower() == target_name:
+                            await self.tip_queue.put((u.id, TIP_MAP[amount_str], u.username))
+                            await self.respond(user, f"💸 Queued {amount_str} for @{u.username}", source)
+                            return
+                    await self.respond(user, "❌ User not in room.", source)
 
         elif clean_msg == "!top":
             sorted_tippers = sorted(self.tip_data.items(), key=lambda x: x[1]['total_tips'], reverse=True)[:10]
