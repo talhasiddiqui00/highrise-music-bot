@@ -19,8 +19,8 @@ from highrise.__main__ import main, BotDefinition
 sys.stdout.reconfigure(line_buffering=True)
 os.environ["PYTHONUNBUFFERED"] = "1"
 
-ROOM_ID = "6a28b5b000b6151bd4c9641e"
-API_TOKEN = "fd250294097b09a7fd05aa523c63b77ef0b980cc28f7f09742b22d0db30b53a0"
+ROOM_ID = "6a08de7555cf5fcd2c74aa26"
+API_TOKEN = "9f190f784462e76e40d1039060c85e2529983407f9f0f99c16889315a7c8acd3"
 DATA_FILE = "./data.json"
 
 TIP_MAP = {
@@ -194,7 +194,7 @@ class Bot(BaseBot):
         Bot.instance = self
         self.bot_id = None
         self.owner_id = None
-        self.owner_username = "sadi_key"
+        self.owner_username = "xRedFox"
         
         # --- LOCKS TO PREVENT DUPLICATION ---
         self.is_initialized = False 
