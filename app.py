@@ -7,6 +7,7 @@ import os
 import sys
 import asyncio
 import json
+import threading
 from json import load, dump
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from highrise import BaseBot, User, Position, AnchorPosition, SessionMetadata, CurrencyItem, Item
@@ -170,9 +171,14 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/plain")
         self.end_headers()
         self.wfile.write(b"Bot Engine Live")
-            
+
     def log_message(self, format, *args):
         return
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
 
 class Bot(BaseBot):
     def __init__(self):
@@ -246,7 +252,7 @@ class Bot(BaseBot):
         if not message or not message.strip(): return
         clean_msg = message.lower().strip()
         is_owner = (user.username.lower() == self.owner_username.lower())
-        
+
         normalized_msg = clean_msg.replace(" ", "")
         if normalized_msg in EMOTE_MAP:
             self.active_emote_loops[user.id] = {"emote_id": EMOTE_MAP[normalized_msg]["id"]}
@@ -272,14 +278,14 @@ class Bot(BaseBot):
 
         if not is_owner: return
 
-        owner_source = "whisper" 
+        owner_source = "whisper"
 
         if clean_msg.startswith("!withdraw "):
             amount = clean_msg.split(" ")[1]
             if amount in TIP_MAP:
                 await self.highrise.tip_user(user.id, TIP_MAP[amount])
                 await self.respond(user, f"💸 Withdrawn {amount}!", owner_source)
-        
+
         elif clean_msg.startswith("!giveall "):
             amount = clean_msg.split(" ")[1]
             if amount in TIP_MAP:
@@ -288,7 +294,7 @@ class Bot(BaseBot):
                     if u.id != self.bot_id:
                         await self.tip_queue.put((u.id, TIP_MAP[amount], u.username))
                 await self.respond(user, f"💸 Queued {amount} for all!", owner_source)
-        
+
         elif clean_msg.startswith("!give "):
             parts = clean_msg.split()
             if len(parts) >= 3:
@@ -318,4 +324,8 @@ class Bot(BaseBot):
         else: await self.highrise.send_whisper(user.id, msg)
 
 if __name__ == "__main__":
+    # Start HTTP health check server in a background daemon thread
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+
     asyncio.run(main([BotDefinition(Bot(), ROOM_ID, API_TOKEN)]))
